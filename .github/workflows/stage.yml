@@ -1,0 +1,103 @@
+name: Skillstride Admin Dashboard Website Stage Deployment
+
+on:
+  push:
+    branches:
+      - stage
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ap-south-1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install test dependencies
+        run: |
+          npm install --force
+      - name: Build React App
+        run: |
+          npm run build
+      - name: Deploy to S3
+        run: |
+          aws s3 cp dist s3://stage-admin.skillstrideacademy.in/ --recursive
+      - name: Notify Teams of Success
+        if: success()
+        run: |
+          curl -H 'Content-Type: application/json' -d '{
+            "@type": "MessageCard",
+            "@context": "http://schema.org/extensions",
+            "summary": "Deployment Succeeded",
+            "themeColor": "00FF00",
+            "sections": [{
+                "activityTitle": "Deployment to S3 Succeeded",
+                "facts": [
+                  { "name": "Project Name", "value": "Skillstride Admin Dashboard" },
+                  { "name": "Environment", "value": "Stage" },
+                  { "name": "Pushed By", "value": "${{ github.actor }}" },
+                  { "name": "Repository", "value": "${{ github.repository }}" },
+                  { "name": "Branch", "value": "stage" },
+                  { "name": "Job Number", "value": "${{ github.run_number }}" },
+                  { "name":  "Website Link", "value": "https://stage-admin.skillstride.com"},
+                  { "name": "Job Status", "value": "Success" },
+                ],
+                "markdown": true
+            }],
+            "potentialAction": [
+              {
+                "@type": "OpenUri",
+                "name": "View Run",
+                "targets": [
+                  { "os": "default", "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
+                ]
+              }
+            ]
+          }' ${{ secrets.TEAMS_WEBHOOK_URL_DEVELOPMENT }}
+      - name: Capture Errors
+        if: failure()
+        run: dmesg > $GITHUB_WORKSPACE/error.log
+
+      - name: Notify Teams of Failure
+        if: failure()
+        run: |
+          error_message=$(cat $GITHUB_WORKSPACE/error.log)
+          curl -H 'Content-Type: application/json' -d '{
+            "@type": "MessageCard",
+            "@context": "http://schema.org/extensions",
+            "summary": "Deployment Failed",
+            "themeColor": "FF0000",
+            "sections": [{
+                "activityTitle": "Deployment to S3 Failed",
+                "facts": [
+                  { "name": "Project Name", "value": "Skillstride Admin Dashboard" },
+                  { "name": "Environment", "value": "Stage" },
+                  { "name": "Pushed By", "value": "${{ github.actor }}" },
+                  { "name": "Repository", "value": "${{ github.repository }}" },
+                  { "name": "Branch", "value": "stage" },
+                  { "name": "Job Number", "value": "${{ github.run_number }}" },
+                  { "name": "Job Status", "value": "Failed" },
+                  { "name": "Error", "value": "'"$error_message"'" }
+                ],
+                "markdown": true
+            }],
+            "potentialAction": [
+              {
+                "@type": "OpenUri",
+                "name": "View Run",
+                "targets": [
+                  { "os": "default", "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
+                ]
+              }
+            ]
+          }' ${{ secrets.TEAMS_WEBHOOK_URL_DEVELOPMENT }}
+        continue-on-error: true

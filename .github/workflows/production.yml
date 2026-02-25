@@ -1,0 +1,36 @@
+name: Skillstride Admin Dashboard Website Production Deployment
+
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ap-south-1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install test dependencies
+        run: |
+          npm install --force
+      - name: Build React App
+        run: |
+          npm run build
+      - name: Deploy to S3
+        run: |
+          aws s3 cp dist s3://admin.skillstrideacademy.in/ --recursive
+      - name: Capture Errors
+        if: failure()
+        run: dmesg > $GITHUB_WORKSPACE/error.log
