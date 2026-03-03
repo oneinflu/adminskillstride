@@ -21,6 +21,7 @@ import { ROUTES } from "../../constants/RouteConstants";
 import Pagination from "../Pagination";
 import ConformationModal from "../modal/ConformationModal";
 import AddModal from "../modal/AddModal";
+import CourseModal from "../modal/CourseModal";
 import { Star } from "lucide-react";
 import { Icons } from "../icons";
 
@@ -51,6 +52,7 @@ const CourseDetails: React.FC = () => {
   const [coursePrices, setCoursePrices] = useState<any>(null);
   const [priceLoading, setPriceLoading] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(false)
+  const [isCourseEditModalOpen, setIsCourseEditModalOpen] = useState(false);
   
 
   const admintoken = useSelector(
@@ -325,19 +327,27 @@ const CourseDetails: React.FC = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Course Details</h1>
-        <button
-          onClick={() => navigate(`${ROUTES.COURSES}?page=${page}`)}
-          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-        >
-          ← Back
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsCourseEditModalOpen(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Edit Course
+          </button>
+          <button
+            onClick={() => navigate(`${ROUTES.COURSES}?page=${page}`)}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+          >
+            ← Back
+          </button>
+        </div>
       </div>
       {/* Course Summary */}
       {course && (
         <div className="bg-white shadow-md rounded-lg p-6 mb-6 flex">
           <div className="flex items-start gap-6 w-3/4">
             <img
-              src={course.image}
+              src={course.landscapeImage || course.image}
               alt={course.name}
               className="w-48 h-32 object-cover rounded-lg"
             />
@@ -800,6 +810,16 @@ const CourseDetails: React.FC = () => {
           editing={editing}
           type={activeTab === "Lessons" ? "Lesson" : "course material"}
           onSubmit={handleSubmitClose}
+        />
+      )}
+      {isCourseEditModalOpen && (
+        <CourseModal
+          onClose={() => setIsCourseEditModalOpen(false)}
+          course={course}
+          onSubmit={() => {
+            setIsCourseEditModalOpen(false);
+            fetchCourseDetails();
+          }}
         />
       )}
     </div>

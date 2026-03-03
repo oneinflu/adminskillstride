@@ -9,6 +9,7 @@ import {
   DELETE_COURSE,
   PUBLISH_COURSE,
   UPDATE_COURSE_STATUS,
+  UPDATE_COURSE,
 } from "../constants/ApiConstants";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
@@ -34,6 +35,7 @@ const Courses: React.FC = () => {
   const [publishStatus, setPublishStatus] = useState("");
   const [deleteId, setDeleteId] = useState(null);
   const [publishId, setPublishId] = useState(null);
+  const [publishAction, setPublishAction] = useState("");
   const admintoken = useSelector(
     (state: any) => state.AuthReducer.userData.access_token
   );
@@ -110,15 +112,23 @@ const Courses: React.FC = () => {
 
   const handlePubLish = async () => {
     try {
+      const isUnpublish = publishAction === "UNPUBLISH";
+      const url = isUnpublish
+        ? `${UPDATE_COURSE}/${publishId}`
+        : `${PUBLISH_COURSE}/${publishId}`;
+      const data = isUnpublish ? { publish_status: "DRAFT" } : {};
+
       const response = await BackendService.Patch(
         {
-          url: `${PUBLISH_COURSE}/${publishId}`,
-          data: {},
+          url,
+          data,
           accessToken: admintoken,
         },
         {
           success: (data) => {
-            toast.success("Course published successfully!");
+            toast.success(
+              `Course ${isUnpublish ? "unpublished" : "published"} successfully!`
+            );
             setIsPublishModal(false);
             setPublishStatus("");
             fetchData(currentPage, itemsPerPage, searchQuery, publishStatus);
@@ -126,7 +136,7 @@ const Courses: React.FC = () => {
           failure: (response) => {
             toast.error(
               response?.response?.data?.message ||
-                "Failed to published the Course."
+                `Failed to ${isUnpublish ? "unpublish" : "publish"} the Course.`
             );
           },
         }
@@ -134,7 +144,8 @@ const Courses: React.FC = () => {
     } catch (error) {
       toast.error("Something went wrong. Please try again!");
     } finally {
-      setDeleteId(null);
+      setPublishId(null);
+      setPublishAction("");
     }
   };
 
@@ -345,15 +356,16 @@ const Courses: React.FC = () => {
                     </button>
 
                     <button
-                      className={`w-[160px] p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm flex items-center gap-1 justify-center ${
-                        course?.publish_status === "PUBLISHED"
-                          ? "cursor-not-allowed"
-                          : ""
-                      }`}
+                      className={`w-[160px] p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm flex items-center gap-1 justify-center`}
                       onClick={() => {
-                        setPublishId(course?._id), setIsPublishModal(true);
+                        setPublishId(course?._id);
+                        setPublishAction(
+                          course?.publish_status === "PUBLISHED"
+                            ? "UNPUBLISH"
+                            : "PUBLISH"
+                        );
+                        setIsPublishModal(true);
                       }}
-                      disabled={course?.publish_status === "PUBLISHED"}
                     >
                       {course?.publish_status === "PUBLISHED"
                         ? "Published"
@@ -432,9 +444,19 @@ const Courses: React.FC = () => {
             isOpen={isPublishModal}
             onClose={() => setIsPublishModal(false)}
             onSubmit={handlePubLish}
-            content="Publish Course"
-            paragraphcontent={`Are you sure you want to publish Course? The updating the course cannot be done again once published.`}
-            buttoncontent="Publish"
+            content={
+              publishAction === "UNPUBLISH"
+                ? "Unpublish Course"
+                : "Publish Course"
+            }
+            paragraphcontent={
+              publishAction === "UNPUBLISH"
+                ? "Are you sure you want to unpublish this course? It will be moved to Draft status."
+                : "Are you sure you want to publish Course? The updating the course cannot be done again once published."
+            }
+            buttoncontent={
+              publishAction === "UNPUBLISH" ? "Unpublish" : "Publish"
+            }
           />
         )}
       </div>

@@ -37,6 +37,12 @@ const LessonDetails: React.FC = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteModal, setIsDeleteModal] = useState(false);
 
+  const formatDurationMinutes = (duration: any) => {
+    const seconds = Number(duration);
+    if (!Number.isFinite(seconds) || seconds <= 0) return "0.00";
+    return (seconds / 60).toFixed(2);
+  };
+
   const fetchLesson = async () => {
     try {
       await BackendService.Get(
@@ -186,8 +192,7 @@ const LessonDetails: React.FC = () => {
                   {video?.description}
                 </td>
                 <td className="px-4 py-2">
-                  {video?.duration ? Number(video.duration).toFixed(2) : "0.00"}{" "}
-                  secs
+                  {formatDurationMinutes(video?.duration)} mins
                 </td>
                 <td className="px-4 py-3 border-b">
                   <label className="inline-flex items-center cursor-pointer">
